@@ -1,0 +1,481 @@
+--=====================================================
+--  DEREK HUB  |  Murder Mystery 2  |  v1.2
+--  Ejecuta en tu executor y presiona RIGHT SHIFT
+--=====================================================
+local Players  = game:GetService("Players")
+local UIS      = game:GetService("UserInputService")
+local RS       = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local LP       = Players.LocalPlayer
+local HOST     = (pcall(function() return gethui() end) and gethui()) or game:GetService("CoreGui")
+
+-- limpieza de ejecuciones anteriores
+if _G.__DerekHubUnload then pcall(_G.__DerekHubUnload) end
+
+local RED   = Color3.fromRGB(225,25,45)
+local BLUE  = Color3.fromRGB(70,150,255)
+local GREEN = Color3.fromRGB(80,220,120)
+local BG    = Color3.fromRGB(18,18,21)
+local BG2   = Color3.fromRGB(32,32,37)
+local BG3   = Color3.fromRGB(48,48,54)
+local TXT   = Color3.fromRGB(238,238,242)
+local DIM   = Color3.fromRGB(145,145,158)
+
+local conns = {}
+local function track(c) table.insert(conns, c) return c end
+
+-- mk tolerante: una propiedad mal escrita ya no rompe el script
+local function mk(c,p)
+  local o = Instance.new(c)
+  if p then
+    for k,v in pairs(p) do
+      local ok = pcall(function() o[k] = v end)
+      if not ok then warn("[DerekHub] propiedad invalida: "..tostring(k).." en "..c) end
+    end
+  end
+  return o
+end
+
+--==================== GUI ====================
+local gui = mk("ScreenGui",{Name="DerekHub",ResetOnSpawn=false,IgnoreGuiInset=true,ZIndexBehavior=Enum.ZIndexBehavior.Sibling})
+gui.Parent = HOST
+
+local main = mk("Frame",{Size=UDim2.new(0,560,0,340),Position=UDim2.new(0.5,-280,0.5,-170),BackgroundColor3=BG,BorderSizePixel=0,Visible=false})
+main.Parent = gui
+mk("UICorner",{CornerRadius=UDim.new(0,14)}).Parent = main
+mk("UIStroke",{Color=RED,Thickness=2,Transparency=0.2}).Parent = main
+
+local top = mk("Frame",{Size=UDim2.new(1,0,0,52),BackgroundTransparency=1})
+top.Parent = main
+local logo = mk("Frame",{Size=UDim2.new(0,34,0,34),Position=UDim2.new(0,16,0,9),BackgroundColor3=RED,BorderSizePixel=0})
+logo.Parent = top
+mk("UICorner",{CornerRadius=UDim.new(0,7)}).Parent = logo
+mk("TextLabel",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Font=Enum.Font.GothamBold,Text="D",TextSize=20,TextColor3=Color3.new(1,1,1)}).Parent = logo
+mk("TextLabel",{Size=UDim2.new(0,260,0,20),Position=UDim2.new(0.5,-130,0,10),BackgroundTransparency=1,Font=Enum.Font.GothamBold,Text="Murder Mystery 2",TextSize=15,TextColor3=TXT}).Parent = top
+mk("TextLabel",{Size=UDim2.new(0,260,0,14),Position=UDim2.new(0.5,-130,0,28),BackgroundTransparency=1,Font=Enum.Font.Gotham,Text="Derek Hub - v1.2",TextSize=11,TextColor3=DIM}).Parent = top
+
+local minB = mk("TextButton",{Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-62,0,14),BackgroundTransparency=1,Text="—",Font=Enum.Font.GothamBold,TextSize=15,TextColor3=DIM})
+minB.Parent = top
+local clsB = mk("TextButton",{Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-32,0,14),BackgroundTransparency=1,Text="✕",Font=Enum.Font.GothamBold,TextSize=15,TextColor3=DIM})
+clsB.Parent = top
+mk("Frame",{Size=UDim2.new(1,-32,0,1),Position=UDim2.new(0,16,0,51),BackgroundColor3=BG3,BorderSizePixel=0}).Parent = main
+
+local side = mk("Frame",{Size=UDim2.new(0,132,1,-64),Position=UDim2.new(0,14,0,58),BackgroundTransparency=1})
+side.Parent = main
+mk("UIListLayout",{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder}).Parent = side
+
+local pages = mk("Frame",{Size=UDim2.new(1,-176,1,-70),Position=UDim2.new(0,162,0,62),BackgroundTransparency=1})
+pages.Parent = main
+
+-- boton flotante para restaurar la ventana minimizada
+local mini = mk("TextButton",{Size=UDim2.new(0,42,0,42),Position=UDim2.new(1,-62,0,20),BackgroundColor3=BG,BorderSizePixel=0,Text="D",Font=Enum.Font.GothamBold,TextSize=18,TextColor3=RED,AutoButtonColor=false,Visible=false})
+mini.Parent = gui
+mk("UICorner",{CornerRadius=UDim.new(0,10)}).Parent = mini
+mk("UIStroke",{Color=RED,Thickness=2,Transparency=0.2}).Parent = mini
+
+local function page()
+  local p = mk("Frame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Visible=false})
+  p.Parent = pages
+  mk("UIListLayout",{Padding=UDim.new(0,6)}).Parent = p
+  return p
+end
+
+local firstTab, firstPage
+local function selectTab(b,pg)
+  for _,s in ipairs(side:GetChildren()) do
+    if s:IsA("TextButton") then s.BackgroundColor3 = BG2 end
+  end
+  for _,q in ipairs(pages:GetChildren()) do
+    if q:IsA("Frame") then q.Visible = false end
+  end
+  b.BackgroundColor3 = Color3.fromRGB(60,25,30)
+  pg.Visible = true
+end
+
+local function tab(name)
+  local b = mk("TextButton",{Size=UDim2.new(1,0,0,46),BackgroundColor3=BG2,BorderSizePixel=0,Font=Enum.Font.GothamMedium,Text=name,TextSize=13,TextColor3=TXT,AutoButtonColor=false})
+  b.Parent = side
+  mk("UICorner",{CornerRadius=UDim.new(0,8)}).Parent = b
+  mk("UIStroke",{Color=BG3,Thickness=1,Transparency=0.3}).Parent = b
+  local pg = page()
+  track(b.MouseButton1Click:Connect(function() selectTab(b,pg) end))
+  if not firstTab then firstTab, firstPage = b, pg end
+  return b, pg
+end
+
+--==================== componentes ====================
+local function slider(parent,label,min,max,def,cb)
+  local row = mk("Frame",{Size=UDim2.new(1,0,0,52),BackgroundTransparency=1})
+  row.Parent = parent
+  mk("TextLabel",{Size=UDim2.new(1,-48,0,18),BackgroundTransparency=1,Font=Enum.Font.GothamMedium,Text=label,TextSize=14,TextColor3=TXT,TextXAlignment=Enum.TextXAlignment.Left}).Parent = row
+  local val = mk("TextLabel",{Size=UDim2.new(0,38,0,22),Position=UDim2.new(1,-40,0.5,-11),BackgroundColor3=RED,Font=Enum.Font.GothamBold,Text=tostring(def),TextSize=12,TextColor3=Color3.new(1,1,1),BorderSizePixel=0})
+  val.Parent = row
+  mk("UICorner",{CornerRadius=UDim.new(1,0)}).Parent = val
+  local track_ = mk("Frame",{Size=UDim2.new(1,-48,0,6),Position=UDim2.new(0,0,0,32),BackgroundColor3=BG3,BorderSizePixel=0})
+  track_.Parent = row
+  mk("UICorner",{CornerRadius=UDim.new(1,0)}).Parent = track_
+  local fill = mk("Frame",{Size=UDim2.new(0,0,1,0),BackgroundColor3=RED,BorderSizePixel=0})
+  fill.Parent = track_
+  mk("UICorner",{CornerRadius=UDim.new(1,0)}).Parent = fill
+  local knob = mk("Frame",{Size=UDim2.new(0,14,0,14),Position=UDim2.new(0,0,0.5,-7),BackgroundColor3=Color3.new(1,1,1),BorderSizePixel=0,ZIndex=2})
+  knob.Parent = track_
+  mk("UICorner",{CornerRadius=UDim.new(1,0)}).Parent = knob
+
+  local held = false
+  local function setA(a)
+    a = math.clamp(a,0,1)
+    fill.Size = UDim2.new(a,0,1,0)
+    knob.Position = UDim2.new(a,-7,0.5,-7)
+    local v = math.floor(min+(max-min)*a+0.5)
+    val.Text = tostring(v)
+    cb(v)
+  end
+  local function fromX(x)
+    if track_.AbsoluteSize.X > 0 then
+      setA((x-track_.AbsolutePosition.X)/track_.AbsoluteSize.X)
+    end
+  end
+  track(track_.InputBegan:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+      held = true fromX(i.Position.X)
+    end
+  end))
+  track(track_.InputEnded:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then held = false end
+  end))
+  track(UIS.InputEnded:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then held = false end
+  end))
+  track(UIS.InputChanged:Connect(function(i)
+    if held and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+      fromX(i.Position.X)
+    end
+  end))
+  setA((def-min)/(max-min))
+end
+
+local function toggle(parent,label,def,cb)
+  local row = mk("Frame",{Size=UDim2.new(1,0,0,32),BackgroundTransparency=1})
+  row.Parent = parent
+  mk("TextLabel",{Size=UDim2.new(1,-60,1,0),BackgroundTransparency=1,Font=Enum.Font.GothamMedium,Text=label,TextSize=14,TextColor3=TXT,TextXAlignment=Enum.TextXAlignment.Left}).Parent = row
+  local b = mk("TextButton",{Size=UDim2.new(0,42,0,22),Position=UDim2.new(1,-42,0.5,-11),BackgroundColor3=BG3,BorderSizePixel=0,Text="",AutoButtonColor=false})
+  b.Parent = row
+  mk("UICorner",{CornerRadius=UDim.new(1,0)}).Parent = b
+  local k = mk("Frame",{Size=UDim2.new(0,16,0,16),Position=UDim2.new(0,3,0.5,-8),BackgroundColor3=DIM,BorderSizePixel=0})
+  k.Parent = b
+  mk("UICorner",{CornerRadius=UDim.new(1,0)}).Parent = k
+  local on = def
+  local function draw()
+    if on then
+      b.BackgroundColor3 = RED
+      k.Position = UDim2.new(1,-19,0.5,-8)
+      k.BackgroundColor3 = Color3.new(1,1,1)
+    else
+      b.BackgroundColor3 = BG3
+      k.Position = UDim2.new(0,3,0.5,-8)
+      k.BackgroundColor3 = DIM
+    end
+  end
+  track(b.MouseButton1Click:Connect(function()
+    on = not on
+    draw()
+    cb(on)
+  end))
+  draw()
+end
+
+local function button(parent,label,cb)
+  local b = mk("TextButton",{Size=UDim2.new(1,0,0,34),BackgroundColor3=BG2,BorderSizePixel=0,Font=Enum.Font.GothamMedium,Text=label,TextSize=13,TextColor3=TXT,AutoButtonColor=false})
+  b.Parent = parent
+  mk("UICorner",{CornerRadius=UDim.new(0,8)}).Parent = b
+  track(b.MouseButton1Click:Connect(cb))
+  return b
+end
+
+--==================== lógica ====================
+local function hum() local c=LP.Character return c and c:FindFirstChildOfClass("Humanoid") end
+local function hrp() local c=LP.Character return c and c:FindFirstChild("HumanoidRootPart") end
+
+local speed, jump = 16, 50
+local infJump, noclip, fly = false, false, false
+local bv = nil
+local savedLight = nil
+
+local function applyStats()
+  local h = hum()
+  if h then
+    h.UseJumpPower = true
+    h.WalkSpeed = speed
+    h.JumpPower = jump
+  end
+end
+
+local function setNoclip(state)
+  local c = LP.Character
+  if not c then return end
+  for _,v in ipairs(c:GetDescendants()) do
+    if v:IsA("BasePart") then v.CanCollide = not state end
+  end
+end
+
+local function startFly()
+  local r = hrp()
+  if not r then return end
+  if bv then bv:Destroy() end
+  pcall(function() r:SetNetworkOwner(LP) end)
+  bv = Instance.new("BodyVelocity")
+  bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+  bv.Velocity = Vector3.zero
+  bv.Parent = r
+end
+
+local function stopFly()
+  if bv then bv:Destroy() bv = nil end
+end
+
+-- Jugador
+local _, pJug = tab("Jugador")
+slider(pJug,"WalkSpeed",16,200,16,function(v) speed=v applyStats() end)
+slider(pJug,"JumpPower",50,300,50,function(v) jump=v applyStats() end)
+toggle(pJug,"Infinite Jump",false,function(s) infJump=s end)
+button(pJug,"Resetear velocidad",function() speed=16 jump=50 applyStats() end)
+button(pJug,"Centrar ventana",function() main.Position = UDim2.new(0.5,-280,0.5,-170) end)
+
+-- Visual
+local _, pVis = tab("Visual")
+toggle(pVis,"Fullbright",false,function(s)
+  if s then
+    savedLight = {
+      Brightness = Lighting.Brightness,
+      ClockTime = Lighting.ClockTime,
+      FogEnd = Lighting.FogEnd,
+      Ambient = Lighting.Ambient,
+    }
+    Lighting.Brightness = 3
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 1e6
+    Lighting.Ambient = Color3.fromRGB(160,160,160)
+  elseif savedLight then
+    Lighting.Brightness = savedLight.Brightness
+    Lighting.ClockTime = savedLight.ClockTime
+    Lighting.FogEnd = savedLight.FogEnd
+    Lighting.Ambient = savedLight.Ambient
+    savedLight = nil
+  end
+end)
+
+local ROLE_KEYS = {
+  {key="knife",    color=RED},
+  {key="revolver", color=BLUE},
+  {key="gun",      color=BLUE},
+}
+
+local esp = false
+local hs = {}
+local espAcc = 0
+
+local function roleColor(p)
+  local c = p.Character
+  if c then
+    for _,t in ipairs(c:GetChildren()) do
+      if t:IsA("Tool") then
+        local n = t.Name:lower()
+        for _,r in ipairs(ROLE_KEYS) do
+          if n:find(r.key, 1, true) then return r.color end
+        end
+      end
+    end
+  end
+  return GREEN
+end
+
+local function clearESP()
+  for _,h in pairs(hs) do pcall(function() h:Destroy() end) end
+  table.clear(hs)
+end
+
+local function refreshESP()
+  for _,p in ipairs(Players:GetPlayers()) do
+    if p ~= LP then
+      local char = p.Character
+      if char and char:FindFirstChildOfClass("Humanoid") then
+        local h = hs[p]
+        if not h or h.Parent ~= char then
+          if h then h:Destroy() end
+          h = Instance.new("Highlight")
+          h.FillTransparency = 0.65
+          h.OutlineTransparency = 0.15
+          h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+          h.Parent = char
+          hs[p] = h
+        end
+        local c = roleColor(p)
+        h.FillColor = c
+        h.OutlineColor = c
+      end
+    end
+  end
+end
+
+toggle(pVis,"ESP / Ver roles",false,function(s)
+  esp = s
+  if s then refreshESP() else clearESP() end
+end)
+
+track(RS.Heartbeat:Connect(function(dt)
+  if not esp then return end
+  espAcc += dt
+  if espAcc < 0.25 then return end
+  espAcc = 0
+  refreshESP()
+end))
+track(Players.PlayerRemoving:Connect(function(p)
+  local h = hs[p]
+  if h then h:Destroy() hs[p] = nil end
+end))
+
+-- Auto
+local _, pAuto = tab("Auto")
+local autoCoin = false
+local coinCache, coinRefresh = {}, 0
+
+local function collectCoins()
+  local list = {}
+  for _,v in ipairs(workspace:GetDescendants()) do
+    if v:IsA("BasePart") and v.Name:lower():find("coin", 1, true) then
+      list[#list+1] = v
+    end
+  end
+  coinCache = list
+end
+
+toggle(pAuto,"Auto Coins",false,function(s)
+  autoCoin = s
+  if s then coinRefresh = 0 end
+end)
+
+task.spawn(function()
+  while true do
+    task.wait(0.35)
+    if autoCoin then
+      local r = hrp()
+      if r then
+        if os.clock() - coinRefresh > 4 then
+          coinRefresh = os.clock()
+          collectCoins()
+        end
+        for _,v in ipairs(coinCache) do
+          if v.Parent then
+            if firetouchinterest then
+              pcall(firetouchinterest, v, r, 0)
+              pcall(firetouchinterest, v, r, 1)
+            else
+              pcall(function() r.CFrame = v.CFrame end)
+              break
+            end
+          end
+        end
+      end
+    end
+  end
+end)
+
+-- Noclip
+local _, pNc = tab("Noclip")
+toggle(pNc,"NoClip",false,function(s)
+  noclip = s
+  setNoclip(s)
+end)
+toggle(pNc,"Fly (WASD / Space / Shift)",false,function(s)
+  fly = s
+  if s then startFly() else stopFly() end
+end)
+
+track(RS.RenderStepped:Connect(function()
+  if fly and bv then
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    local m = Vector3.zero
+    if UIS:IsKeyDown(Enum.KeyCode.W) then m += cam.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.S) then m -= cam.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.A) then m -= cam.CFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.D) then m += cam.CFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.Space) then m += Vector3.yAxis end
+    if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then m -= Vector3.yAxis end
+    bv.Velocity = m.Magnitude > 0 and m.Unit * 60 or Vector3.zero
+  end
+end))
+
+track(UIS.JumpRequest:Connect(function()
+  if infJump then
+    local h = hum()
+    if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+  end
+end))
+
+track(LP.CharacterAdded:Connect(function()
+  task.wait(1)
+  applyStats()
+  if noclip then setNoclip(true) end
+  if fly then startFly() end
+end))
+
+--==================== drag / toggle ventana ====================
+local drag, start, pos = false, nil, nil
+track(top.InputBegan:Connect(function(i)
+  if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+    drag = true start = i.Position pos = main.Position
+  end
+end))
+track(UIS.InputEnded:Connect(function(i)
+  if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end
+end))
+track(UIS.InputChanged:Connect(function(i)
+  if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+    local d = i.Position - start
+    main.Position = UDim2.new(pos.X.Scale,pos.X.Offset+d.X,pos.Y.Scale,pos.Y.Offset+d.Y)
+  end
+end))
+
+clsB.MouseButton1Click:Connect(function()
+  main.Visible = false
+  mini.Visible = false
+end)
+minB.MouseButton1Click:Connect(function()
+  main.Visible = false
+  mini.Visible = true
+end)
+mini.MouseButton1Click:Connect(function()
+  main.Visible = true
+  mini.Visible = false
+end)
+
+track(UIS.InputBegan:Connect(function(i,g)
+  if g then return end
+  if i.KeyCode == Enum.KeyCode.RightShift then
+    main.Visible = not main.Visible
+    if main.Visible then mini.Visible = false end
+  end
+end))
+
+--==================== unload ====================
+local function unload()
+  stopFly()
+  clearESP()
+  if savedLight then
+    Lighting.Brightness = savedLight.Brightness
+    Lighting.ClockTime = savedLight.ClockTime
+    Lighting.FogEnd = savedLight.FogEnd
+    Lighting.Ambient = savedLight.Ambient
+    savedLight = nil
+  end
+  for _,c in ipairs(conns) do pcall(function() c:Disconnect() end) end
+  table.clear(conns)
+  pcall(function() gui:Destroy() end)
+  _G.__DerekHubUnload = nil
+end
+_G.__DerekHubUnload = unload
+
+applyStats()
+main.Visible = true
+if firstTab then selectTab(firstTab, firstPage) end
